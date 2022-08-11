@@ -5,7 +5,7 @@ import java.util.List;
 public class Dataset {
 
     private List<Pokemon> pokemons;
-    private List<Held_item> held_items;
+    private List<HeldItem> held_items;
 
     public Dataset() {
     }
@@ -18,7 +18,7 @@ public class Dataset {
         return pokemons;
     }
 
-    public List<Held_item> getHeld_items() {
+    public List<HeldItem> getHeldItems() {
         return held_items;
     }
 
