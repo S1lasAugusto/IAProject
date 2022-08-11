@@ -31,7 +31,15 @@ public class PokemonTeamChromosome extends AbstractChromosome<PokemonGene> {
     @Override
     public boolean isValid() {
         return this._genes.forAll(x -> x.isValid())
-                && this._genes.stream().map(x -> x.allele().get(0)).distinct().count() == 5;
+                && hasDistinctPokemons();
+    }
+
+    public boolean hasDistinctPokemons() {
+        return this._genes.stream().map(x -> x.allele().get(0)).distinct().count() == 5;
+    }
+
+    public Chromosome<PokemonGene> repair() {
+        return newInstance();
     }
 
     public static PokemonTeamChromosome of(int pokemonLength, int heldItemLength) {
@@ -42,8 +50,14 @@ public class PokemonTeamChromosome extends AbstractChromosome<PokemonGene> {
 
         ISeq<PokemonGene> seq = ISeq.empty();
 
-        for (int i = 0; i < 5; i++) {
-            seq = seq.append(PokemonGene.of(pokemonLength, heldItemLength));
+        int count = 0;
+        while (count < 5) {
+            var gene = PokemonGene.of(pokemonLength, heldItemLength);
+
+            if (!seq.stream().map(x -> x.getPokemon()).anyMatch(x -> x == gene.getPokemon())) {
+                seq = seq.append(gene);
+                count++;
+            }
         }
 
         return seq;

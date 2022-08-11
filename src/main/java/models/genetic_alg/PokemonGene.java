@@ -29,6 +29,14 @@ public class PokemonGene implements Gene<List<Integer>, PokemonGene> {
         return this.allele;
     }
 
+    public int getPokemon() {
+        return this.allele.get(0);
+    }
+
+    public List<Integer> getHeldItems() {
+        return this.allele.subList(1, 4);
+    }
+
     @Override
     public PokemonGene newInstance() {
         RandomGenerator random = RandomRegistry.random();

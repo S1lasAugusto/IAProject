@@ -8,12 +8,15 @@ public class LevelData {
     private double defense;
     private double sp_attack;
     private double sp_defense;
-    private String move_speed;
+    private double move_speed;
     private double cdr;
     private double life_steal;
     private double crit_chance;
     private double tenacity;
     private double attack_speed;
+
+    public LevelData() {
+    }
 
     public LevelData(double hp,
                      double heal_5s,
@@ -21,7 +24,7 @@ public class LevelData {
                      double defense,
                      double sp_attack,
                      double sp_defense,
-                     String move_speed,
+                     double move_speed,
                      double cdr,
                      double life_steal,
                      double critic_chance,
@@ -90,11 +93,11 @@ public class LevelData {
         this.sp_defense = sp_defense;
     }
 
-    public String getMove_speed() {
+    public double getMove_speed() {
         return move_speed;
     }
 
-    public void setMove_speed(String move_speed) {
+    public void setMove_speed(double move_speed) {
         this.move_speed = move_speed;
     }
 
