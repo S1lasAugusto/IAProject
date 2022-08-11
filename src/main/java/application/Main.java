@@ -1,9 +1,14 @@
 package application;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -50,9 +55,11 @@ public class Main {
                 .build();
 
         final EvolutionStatistics<Double, ?> statistics = EvolutionStatistics.ofNumber();
+        List<Double> fitnessByGeneration = new ArrayList<>();
+
         // 4.) Start the execution (evolution) and
         // collect the result.
-        Genotype<PokemonGene> result = engine.stream()
+        var result = engine.stream()
                 // Truncate the evolution stream after 15 "steady"
                 // generations.
                 .limit(Limits.bySteadyFitness(15))
@@ -61,13 +68,12 @@ public class Main {
                 // Update the evaluation statistics after
                 // each generation
                 .peek(statistics)
+                .peek(er -> fitnessByGeneration.add(er.bestFitness()))
                 // Collect (reduce) the evolution stream to
                 // its best phenotype.
-                .collect(EvolutionResult.toBestGenotype());
+                .collect(EvolutionResult.toBestEvolutionResult());
 
-        System.out.println(resultString(result));
-
-        System.out.println(statistics);
+        saveEvolutionResult(result, fitnessByGeneration, statistics);
     }
 
     private static Double Fitness(Genotype<PokemonGene> genotype) {
@@ -99,7 +105,7 @@ public class Main {
             individualFitness = 0;
             for (int level = 4; level < 10; level++) {
                 LevelData levelWithItems = applyItems(pokemon.getLevelData().get(level), heldItems);
-                
+
                 // Great survivability, damage output and movespeed to win fight, flee fights
                 // and secure objectives
                 double survivability = pokemon.getLevelData().get(level).getHp();
@@ -134,7 +140,7 @@ public class Main {
                 damageOutput += levelWithItems.getSp_attack()
                         * (1 + levelWithItems.getCdr());
                 damageOutput /= 2;
-                
+
                 // Great survivability, damage output and movespeed to win fight, flee fights
                 // and secure objectives
                 double survivability = levelWithItems.getHp();
@@ -143,7 +149,6 @@ public class Main {
                 survivability += 3 * levelWithItems.getSp_defense();
                 survivability += damageOutput * levelWithItems.getLife_steal();
                 survivability /= 9;
-
 
                 individualFitness = (4 * survivability + 5 * damageOutput) / 9;
             }
@@ -235,7 +240,6 @@ public class Main {
             // Lê o conteudo de um arquivo e guarda em uma String.
             String json = String.join(" ", Files.readAllLines(
                     Paths.get(".\\input\\NormalizedDataset.json"), StandardCharsets.UTF_8));
-            System.out.println("lendo");
 
             // Desserialização do conteúdo em um novo objeto Dataset, usando o método
             // fromJson do Gson.
@@ -248,5 +252,36 @@ public class Main {
         }
 
         return null;
+    }
+
+    private static void saveEvolutionResult(EvolutionResult<PokemonGene, Double> result,
+            List<Double> fitnessByGeneration,
+            EvolutionStatistics<Double, ?> statistics) {
+        
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+        String dateString = format.format(now);
+
+        try {
+            File fitnessByGenerationFile = new File("./output/" + dateString + "/fitnessByGeneration" + ".json");
+            fitnessByGenerationFile.getParentFile().mkdirs();
+            FileWriter writer = new FileWriter(fitnessByGenerationFile);
+            writer.append(new Gson().toJson(fitnessByGeneration));
+            writer.close();
+
+            File statisticsFile = new File("./output/" + dateString + "/statistics" + ".txt");
+            statisticsFile.getParentFile().mkdirs();
+            writer = new FileWriter(statisticsFile);
+            writer.append(statistics.toString());
+            writer.close();
+
+            File teamFile = new File("./output/" + dateString + "/team" + ".txt");
+            teamFile.getParentFile().mkdirs();
+            writer = new FileWriter(teamFile);
+            writer.append(resultString(result.bestPhenotype().genotype()));
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
