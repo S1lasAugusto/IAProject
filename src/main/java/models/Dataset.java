@@ -2,6 +2,7 @@ package models;
 
 import java.util.List;
 
+// Representation of our dataset
 public class Dataset {
 
     private List<Pokemon> pokemons;

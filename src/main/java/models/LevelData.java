@@ -1,5 +1,6 @@
 package models;
 
+// Representation of the pokemon level data
 public class LevelData {
 
     private double hp;

@@ -14,8 +14,6 @@ import java.util.List;
 import com.google.gson.Gson;
 
 import io.jenetics.Genotype;
-import io.jenetics.Phenotype;
-import io.jenetics.engine.Constraint;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import io.jenetics.engine.EvolutionStatistics;
@@ -40,25 +38,21 @@ public class Main {
             return;
         }
 
-        // 1.) Define the genotype (factory) suitable
-        // for the problem.
+        // Defining the Genotype factory (individual characteristics)
         Factory<Genotype<PokemonGene>> gtf = Genotype
                 .of(PokemonTeamChromosome.of(dataset.getPokemons().size(), dataset.getHeldItems().size()));
 
+        // Building the engine that'll run the genetic algorithm with out fitness function
         Engine<PokemonGene, Double> engine = Engine.builder(Main::Fitness, gtf)
-                .constraint(Constraint.of(pt -> pt.isValid(), (pt, g) -> {
-                    PokemonTeamChromosome chromosome = (PokemonTeamChromosome) pt.genotype().chromosome();
-                    return Phenotype.of(Genotype.of(chromosome.repair()), g);
-                }))
                 .populationSize(300)
+                // Maximizing the fitness function
                 .maximizing()
                 .build();
 
+        // Evolution statistics
         final EvolutionStatistics<Double, ?> statistics = EvolutionStatistics.ofNumber();
         List<Double> fitnessByGeneration = new ArrayList<>();
 
-        // 4.) Start the execution (evolution) and
-        // collect the result.
         var result = engine.stream()
                 // Truncate the evolution stream after 15 "steady"
                 // generations.
@@ -70,12 +64,14 @@ public class Main {
                 .peek(statistics)
                 .peek(er -> fitnessByGeneration.add(er.bestFitness()))
                 // Collect (reduce) the evolution stream to
-                // its best phenotype.
+                // its best result.
                 .collect(EvolutionResult.toBestEvolutionResult());
 
+        // Save the results in files
         saveEvolutionResult(result, fitnessByGeneration, statistics);
     }
 
+    // Scores a pokemon unite team based on heuristics
     private static Double Fitness(Genotype<PokemonGene> genotype) {
         double firstClearFitness = 0, midGameFitsness = 0, lateGameFitness = 0;
 
@@ -83,6 +79,7 @@ public class Main {
             var pokemon = getPokemonFromPokemonGene(pokemonGene);
             var heldItems = getHeldItemsFromPokemonGene(pokemonGene);
 
+            // First clear stats (level 1~4)
             double individualFitness = 0;
             for (int level = 0; level < 4; level++) {
                 LevelData levelWithItems = applyItems(pokemon.getLevelData().get(level), heldItems);
@@ -102,6 +99,7 @@ public class Main {
             }
             firstClearFitness += individualFitness / (4 * 5);
 
+            // Mid game stats (levels 5~10)
             individualFitness = 0;
             for (int level = 4; level < 10; level++) {
                 LevelData levelWithItems = applyItems(pokemon.getLevelData().get(level), heldItems);
@@ -129,6 +127,7 @@ public class Main {
             }
             midGameFitsness += individualFitness / (6 * 5);
 
+            // End game (levels 10~15)
             individualFitness = 0;
             for (int level = 10; level < 15; level++) {
                 LevelData levelWithItems = applyItems(pokemon.getLevelData().get(level), heldItems);
@@ -152,13 +151,14 @@ public class Main {
 
                 individualFitness = (4 * survivability + 5 * damageOutput) / 9;
             }
-
             lateGameFitness += individualFitness / (5 * 5);
         }
 
-        return (2 * firstClearFitness + 3 * midGameFitsness + 5 * lateGameFitness) / 10;
+        // Wheighted average of the per game state fitness
+        return (5 * firstClearFitness + 3 * midGameFitsness + 5 * lateGameFitness) / 13;
     }
 
+    // Applys the Held Items stats to the pokemon base stats at a specific level
     private static LevelData applyItems(LevelData baseStats, List<HeldItem> items) {
         LevelData levelDataItem = new LevelData();
 
@@ -206,14 +206,17 @@ public class Main {
         return levelDataItem;
     }
 
+    // Gets the chosen pokemon of the Gene from the dataset
     private static Pokemon getPokemonFromPokemonGene(PokemonGene pokemonGene) {
         return dataset.getPokemons().get(pokemonGene.getPokemon());
     }
 
+    // Gets the chosen held items of the Gene from the dataset
     private static List<HeldItem> getHeldItemsFromPokemonGene(PokemonGene pokemonGene) {
         return pokemonGene.getHeldItems().stream().map(x -> dataset.getHeldItems().get(x)).toList();
     }
 
+    // Converts the chosen Pokemons and Held Items to a readable string
     private static String resultString(Genotype<PokemonGene> result) {
 
         StringBuilder sb = new StringBuilder();
@@ -235,14 +238,12 @@ public class Main {
         return sb.toString();
     }
 
+    // Reads the dataset
     private static Dataset readDataset() {
         try {
-            // Lê o conteudo de um arquivo e guarda em uma String.
             String json = String.join(" ", Files.readAllLines(
                     Paths.get(".\\input\\NormalizedDataset.json"), StandardCharsets.UTF_8));
 
-            // Desserialização do conteúdo em um novo objeto Dataset, usando o método
-            // fromJson do Gson.
             Dataset dataset = new Gson().fromJson(json, Dataset.class);
 
             return dataset;
@@ -254,6 +255,7 @@ public class Main {
         return null;
     }
 
+    // Saves the evolution results to files
     private static void saveEvolutionResult(EvolutionResult<PokemonGene, Double> result,
             List<Double> fitnessByGeneration,
             EvolutionStatistics<Double, ?> statistics) {

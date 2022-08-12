@@ -1,5 +1,6 @@
 package models;
 
+// Representation of a Held Item
 public class HeldItem {
 
     private String name;

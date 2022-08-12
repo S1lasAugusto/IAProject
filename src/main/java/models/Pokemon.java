@@ -3,6 +3,7 @@ package models;
 import java.util.ArrayList;
 import java.util.List;
 
+// Representation of a pokemon
 public class Pokemon {
 
     private String name;
